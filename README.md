@@ -4,15 +4,17 @@ Currently adds two modding batch scripts to streamline the workflow of modding I
 
 ## 1) Mod Folder Renamer (nameMods.bat)
 
+### Features:
 Renames Invisible, Inc. mod folders from their steam names (e.g. `workshop-1711205484`) to their mod names, 
 edited to be compatible with the game's Mod Manager (e.g. `Advanced_Cyberwarfare`).
 
 Useful for when you want to look up code in another mod, but don't remember which of the `workshop-XXXXXXXX` folders that mod was.
 
-Usage: drop `nameMods.bat` in your `InvisibleInc/mods` folder. Run it to rename all mods in the same folder.
+### Usage:
+ - Drop `nameMods.bat` in your `InvisibleInc/mods` folder
+ - Run the file to rename all mods in the same folder
 
 ## 2) Quiksizzler
-
 Workflow optimizer for Invisible, Inc. modding. Run to automatically assemble the next version.
 
 ### Features:
@@ -45,3 +47,14 @@ feature for small public releases such as hotfixes, version for major releases (
 #### Customization
 Most of the file is documented inside, so it should be fairly easy to edit to your needs. I won't claim it's anywhere near optimized, since I'm very poor at batch - it just gets the job done for me.
    
+## 3) Animation filter
+A tool to better prepare the .anim folders output by the KWAD tool.
+
+### Features:
+Renames the animation files to remove most trailing "-1"s created by the KWAD tool; removes the useless duplicate images; amends the build.xml to use the new filenames.
+
+### Usage:
+ - Drop `anim processor.bat` into a directory
+ - Drop desired .anim folders into the same directory
+ - Ensure each .anim folder has a build.xml inside
+ - Run the file
