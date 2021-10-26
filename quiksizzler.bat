@@ -1,18 +1,33 @@
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-::Quiksizzler v6.1
+::Quiksizzler v7.0
 ::Written by Sizzlefrost, 2019
-::Last Update: 09/11/19
-::Quiksizzler now cleans up Invisible's .mdmp crash dumps on game startup
+::Last Update: 26/10/21
+::Major release; UI overhaul; ZIP improvements
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 @echo off
-setlocal
 setlocal EnableDelayedExpansion
 ::Bd is an all-purpose build variable, M is the mod path that's remembered during kwad setup, H is a Gigasizzler flag
 set %%_Bd=0
 set _M=0
 set _H=0
-title Quiksizzler v6
-color 1B
+:: Quiksizzler Status (QSLS) messages
+set qslsOk=OK
+set qslsUnresolved=UNRESOLVED
+set qslsError=ERROR
+set qslsSkip=SKIPPED
+set qsls1=VERSION - 
+set qsls2=SCRIPTS - 
+set qsls3=KWADS - 
+:: QSLS flags
+set qsls1_=
+set qsls2_=
+set qsls3_=
+:: Black stack overflow sorcery that gets rid of the "ECHO IS OFF." outputs
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (
+  set "DEL=%%a"
+)
+title Quiksizzler v7
+color 09
 break>"version.tmp"
 break>"modinfo.tmp"
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -21,6 +36,8 @@ break>"modinfo.tmp"
 ::check that modinfo contains string "version" at the start of a line
 ::if yes, we assume it's written correctly (we're not changing any other lines anyway, so Sizzler won't be to blame)
 ::if not, we fix that
+call :drawLogo
+set qsls1_=1 & :: if something happens while we increment, we know that there's been an error
 for /f "usebackq tokens=1 delims= " %%a in (`findstr /b version "modinfo.txt"`) do (
 if %%a EQU version goto:version else goto:fixmodinfo
 )
@@ -39,7 +56,7 @@ goto versionAdvance
 
 ::ask user which number of the version they'd like to increment
 :version
-for /f "usebackq tokens=1,3,4,5,6 delims=. " %%a in (`findstr "version" modinfo.txt`) do echo Found existing mod build: %%b.%%c.%%d.%%e
+for /f "usebackq tokens=1,3,4,5,6 delims=. " %%a in (`findstr "version" modinfo.txt`) do call :colorEcho 0B "Found existing mod build - %%b.%%c.%%d.%%e"
 :versionAdvance
 for /f "usebackq tokens=1,3,4,5,6 delims=. " %%a in (`findstr "version" modinfo.txt`) do echo %%a = %%b.%%c.%%d.%%e>version.tmp
 echo [Format: Revision.Version.Feature.Build]
@@ -55,7 +72,7 @@ IF %ERRORLEVEL% EQU 1 goto executeBuild
 IF %ERRORLEVEL% EQU 2 goto executeFeature
 IF %ERRORLEVEL% EQU 3 goto executeVersion
 IF %ERRORLEVEL% EQU 4 goto executeRevision
-IF %ERRORLEVEL% EQU 5 echo MODINFO SKIP && goto scripts
+IF %ERRORLEVEL% EQU 5 echo MODINFO SKIP && set qsls1_=2 && goto scripts
 IF %ERRORLEVEL% EQU 6 echo GIGASIZZLER ENABLED && set /a _H=1 && goto executeBuild
 IF %ERRORLEVEL% EQU 7 goto abort
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -78,7 +95,7 @@ move /y modinfo.tmp modinfo.txt >nul
 ::The reason this is so overcomplicated is that any appending write effects always insert a newline at the start, so you have to write the whole version number at once,
 ::both the changed and unchanged parts, which is why the script jumped through all those hoops.
 for /f "delims=" %%l in (version.tmp) do echo %%l!_Bd!>>modinfo.txt
-echo MODINFO OK
+set qsls1_=0
 ::If we're in Gigasizzler mode, we skip the prompt
 IF %_H% EQU 1 goto:scriptsSilent
 goto:scripts
@@ -94,7 +111,7 @@ move /y modinfo.tmp modinfo.txt >nul
 ::this part is similar too, but we're keeping in mind we have only rev.ver. in version.tmp and only feat. in variable
 ::so we reset the build to 1
 for /f "delims=" %%l in (version.tmp) do echo %%l!_Bd!.1>>modinfo.txt
-echo MODINFO OK
+set qsls1_=0
 goto:scripts
 
 ::make a version
@@ -107,7 +124,7 @@ findstr /v version modinfo.txt>modinfo.tmp
 move /y modinfo.tmp modinfo.txt >nul
 ::and we account for lack of value in feature slot by resetting it to zero, along with resetting build to 1 like above
 for /f "delims=" %%l in (version.tmp) do echo %%l!_Bd!.0.1>>modinfo.txt
-echo MODINFO OK
+set qsls1_=0
 goto:scripts
 
 ::make a revision
@@ -119,34 +136,77 @@ for /f "usebackq tokens=1 delims=. " %%a in (`findstr /b version "modinfo.txt"`)
 findstr /v version modinfo.txt>modinfo.tmp
 move /y modinfo.tmp modinfo.txt >nul
 for /f "delims=" %%l in (version.tmp) do echo %%l!_Bd!.0.0.1>>modinfo.txt
-echo MODINFO OK
+set qsls1_=0
 goto:scripts
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::   S  C  R  I  P  T  S  .  Z  I  P   ::
 :::::::::::::::::::::::::::::::::::::::::
 :scripts
+call :drawLogo
+set qsls2_=1 & :: if something happens while we make the zip, we know that there's been an error
 choice /n /m "Would you like to update scripts.zip? [Y/N]"
-IF %ERRORLEVEL% EQU 2 echo SCRIPTS SKIP && goto:skipscripts
+IF %ERRORLEVEL% EQU 2 echo SCRIPTS SKIP && set qsls2_=2 && goto:skipscripts
 ::check that scripts folder exists, update scripts.zip from it if it does
 
 :scriptsSilent
-if exist "scripts" (
-if exist scripts.zip del /q scripts.zip
-powershell.exe -nologo -noprofile -command "& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::CreateFromDirectory('scripts', 'scripts.zip'); }"
-) else ( 
-echo "ERROR: Scripts folder not found. Proceeding without building scripts.zip..."
+if not exist "scripts" goto scriptsInvalid
+
+:: kinda ugly, lol
+:: Line by line, we're assembling a VBS script that writes a ZIP archive
+:: this lets us zip up the scripts folder cleanly
+:: the previous method used here was simpler, but less robust
+:: () backward-compatible and also couldn't handle subfolders
+
+echo Assembling Quikzipper...
+
+echo Set objArgs = WScript.Arguments >> quikzipper.vbs
+echo ZipFile = objArgs(1) >> quikzipper.vbs
+echo Set objShell = CreateObject("Shell.Application") >> quikzipper.vbs
+echo Set objFS = CreateObject("Scripting.FileSystemObject") >> quikzipper.vbs
+echo Wscript.Echo "QZIPR - Creating empty ZIP" >> quikzipper.vbs
+echo objFS.CreateTextFile(ZipFile, True).Write "PK" ^& Chr(5) ^& Chr(6) ^& String(18, vbNullChar) >> quikzipper.vbs
+echo InputFolder = objFS.GetAbsolutePathName(objArgs(0)) >> quikzipper.vbs
+echo ZipFile = objFS.GetAbsolutePathName(objArgs(1)) >> quikzipper.vbs
+echo Wscript.Echo "QZIPR - Initiating file copying" >> quikzipper.vbs
+echo Set source = objShell.NameSpace(InputFolder).Items >> quikzipper.vbs 
+echo Count = objShell.NameSpace(ZipFile).Items().Count >> quikzipper.vbs
+echo objShell.NameSpace(ZipFile).CopyHere(source) >> quikzipper.vbs
+echo Wscript.Echo "QZIPR - Awaiting end of file copying" >> quikzipper.vbs
+echo Do While Count = objShell.NameSpace(ZipFile).Items().Count >> quikzipper.vbs
+echo 	Wscript.Echo "QZIPR - ..." >> quikzipper.vbs
+echo 	wScript.Sleep 200 >> quikzipper.vbs
+echo Loop >> quikzipper.vbs
+echo Wscript.Echo "QZIPR - SUCCESS" >> quikzipper.vbs
+:: wait for user input - TODO
+cls
+echo "  ____          _   __         _                       "
+echo " / __ \ __ __  (_) / /__ ___  (_) ___   ___  ___   ____"
+echo "/ /_/ // // / / / /  '_//_ / / / / _ \ / _ \/ -_) / __/"
+echo "\___\_\\_,_/ /_/ /_/\_\ /__//_/ / .__// .__/\__/ /_/   "
+echo "                               /_/   /_/               "
+CScript  quikzipper.vbs  scripts  scripts.zip
+echo "/_____________________________________________________/"
+echo Disassembling Quikzipper...
+
+del /q quikzipper.vbs
+set qsls2_=0
+goto skipscripts
+:: if powershell is installed, run that
+:: powershell.exe -nologo -noprofile -command "& { Add-Type -Assembly 'System.IO.Compression.FileSystem'; [System.AppContext]::SetSwitch('Switch.System.IO.Compression.ZipFile.UseBackslash', $false); [IO.Compression.ZipFile]::CreateFromDirectory('scripts', 'scripts.zip'); }"
+:scriptsInvalid
+echo "ERROR: Scripts folder not found. It is required for any mod, please build one!"
 pause 
 exit /b 0
-)
-echo SCRIPTS OK
 
 :skipscripts
-IF %_H% EQU 1 echo KWADS SKIP && goto:end
+IF %_H% EQU 1 echo KWADS SKIP && set qsls3_=2 && goto:end
+call :drawLogo
+set qsls3_=1 & :: if something happens while we increment, we know that there's been an error
 choice /n /m "Would you like to update the .kwad files? [Y/N]"
 ::Before we move anywhere, let's save our current location so we can always recall to it
 set _M="%cd%"
 IF %ERRORLEVEL% EQU 1 goto:kwadFind
-IF %ERRORLEVEL% EQU 2 echo KWADS SKIP && goto:end
+IF %ERRORLEVEL% EQU 2 echo KWADS SKIP && set qsls3_=2 && goto:end
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::   K  W  A  D     B  U  I  L  D  E  R   ::
 ::::::::::::::::::::::::::::::::::::::::::::
@@ -190,20 +250,20 @@ cd "out"
 ::so we grab every .kwad we see and we put it back where the script is at (the mod directory); /a:-d means everything but directories (i.e. normal files only)
 for /f "usebackq delims=" %%a in (`dir /b /a:-d "*.kwad"`) do (move /y "%%a" !_M!\%%~nxa >nul)
 ::and we report success
-echo KWADS OK
+set qsls3_=0
 cd %_M%
 goto:end
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::   E  X  I  T  S   ::
 :::::::::::::::::::::::
 :end
+call :drawLogo
 ::clean up temp files
 if exist version.tmp del /q version.tmp
 if exist modinfo.tmp del /q modinfo.tmp
-echo CLEANUP OK
-for /f "usebackq tokens=3,4,5,6 delims=. " %%b in (`findstr /b version "modinfo.txt"`) do echo Build successful: written new version %%b.%%c.%%d.%%e
+for /f "usebackq tokens=3,4,5,6 delims=. " %%b in (`findstr /b version "modinfo.txt"`) do call :colorEcho 0B "Build successful - version %%b.%%c.%%d.%%e ready"
 IF %_H% EQU 1 goto launchGame
-choice /n /m "Would you like to start Invisible, Inc.? [Y/N] (EXPERIENCED MODDERS, HEADS UP: this also cleans up previous .mdmp crash logs)"
+choice /n /m "Would you like to start Invisible, Inc.? [Y/N]"
 IF %ERRORLEVEL% EQU 1 goto launchGame
 endlocal
 exit /b 0
@@ -231,3 +291,37 @@ if exist version.tmp del /q version.tmp
 if exist modinfo.tmp del /q modinfo.tmp
 echo Cleaned up, aborting...
 exit /b 1
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::   L  O  G  O   ::
+::::::::::::::::::::
+:: font name: Slant; @ https://patorjk.com/software/taag/
+:drawLogo
+cls
+call :colorEcho 0B " dPOYb   88   88  88  db  dP   dPOY8  88  8888P  8888P  88      888888  88OOYb        Yb    dP 888888P  d8POY8b"
+call :colorEcho 0B "dP   Yb  88   88  88  88oP     Y8b    88    dP     dP   88      88__    88__dP         Yb  dP      dP   8P   Y8"
+call :colorEcho 0B "Yb  _dP  Y8   8P  88  88~b       Y8b  88   dP     dP    88      88^    88OYb           YbdP      dP    8b   d8"
+call :colorEcho 0B " YOYoYo_  YbodP   88  YP  Yb  8bod8P  88  d8888  d8888  88ood8  888888  88  Yb           YP      dP   O YObodOP"
+echo ### STATUS ###
+<nul set /p dummy="%qsls1%"
+call :displayStatus %qsls1_%
+<nul set /p dummy="%qsls2%"
+call :displayStatus %qsls2_%
+<nul set /p dummy="%qsls3%"
+call :displayStatus %qsls3_%
+echo ##############
+EXIT /B 0
+
+:displayStatus
+if "%~1"=="0" call :colorEcho A0 "%qslsOk%" & EXIT /B 0
+if "%~1"=="1" call :colorEcho 4F "%qslsError%" & EXIT /B 0
+if "%~1"=="2" call :colorEcho 08 "%qslsSkip%" & EXIT /B 0
+call :colorEcho 0F "%qslsUnresolved%"
+EXIT /B 0
+
+:colorEcho
+echo off
+echo %DEL% > "%~2"
+findstr /v /a:%1 /R "^$" "%~2" nul
+del "%~2" > nul 2>&1
+EXIT /B 0
