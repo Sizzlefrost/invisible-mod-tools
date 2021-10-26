@@ -1,8 +1,11 @@
 # Sizzle's Invisible Modding Tools
 
-Currently adds two modding batch scripts to streamline the workflow of modding Invisible, Inc.
+Currently adds three modding batch scripts to streamline the workflow of modding Invisible, Inc.  
+[Mod Folder Renamer (nameMods.bat)](https://github.com/Sizzlefrost/invisible-mod-tools#1-mod-folder-renamer-namemodsbat)  
+[Quiksizzler](https://github.com/Sizzlefrost/invisible-mod-tools#2-quiksizzler)  
+[Animation filter](https://github.com/Sizzlefrost/invisible-mod-tools#3-animation-filter)  
 
-## 1) Mod Folder Renamer (nameMods.bat)
+## [1) Mod Folder Renamer (nameMods.bat)](https://github.com/Sizzlefrost/invisible-mod-tools#1-mod-folder-renamer-namemodsbat)
 
 ### Features:
 Renames Invisible, Inc. mod folders from their steam names (e.g. `workshop-1711205484`) to their mod names, 
@@ -14,7 +17,7 @@ Useful for when you want to look up code in another mod, but don't remember whic
  - Drop `nameMods.bat` in your `InvisibleInc/mods` folder
  - Run the file to rename all mods in the same folder
 
-## 2) Quiksizzler
+## [2) Quiksizzler](https://github.com/Sizzlefrost/invisible-mod-tools#2-quiksizzler)
 Workflow optimizer for Invisible, Inc. modding. Run to automatically assemble the next version.
 
 ### Features:
@@ -47,7 +50,7 @@ feature for small public releases such as hotfixes, version for major releases (
 #### Customization
 Most of the file is documented inside, so it should be fairly easy to edit to your needs. I won't claim it's anywhere near optimized, since I'm very poor at batch - it just gets the job done for me.
    
-## 3) Animation filter
+## [3) Animation filter](https://github.com/Sizzlefrost/invisible-mod-tools#3-animation-filter)
 A tool to better prepare the .anim folders output by the KWAD tool.
 
 ### Features:
