@@ -1,8 +1,8 @@
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-::Quiksizzler v7.0
+::Quiksizzler v7.1
 ::Written by Sizzlefrost, 2019
-::Last Update: 26/10/21
-::Major release; UI overhaul; ZIP improvements
+::Last Update: 08/02/22
+::modinfo icon no longer enforced; unsets variables
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 @echo off
 setlocal EnableDelayedExpansion
@@ -26,7 +26,7 @@ set qsls3_=
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (
   set "DEL=%%a"
 )
-title Quiksizzler v7
+title Quiksizzler v7.1
 color 09
 break>"version.tmp"
 break>"modinfo.tmp"
@@ -45,12 +45,9 @@ if %%a EQU version goto:version else goto:fixmodinfo
 ::if modinfo was empty, it's filled with placeholder data (NOTE: version ticks up to 1.0.0.1)
 :fixmodinfo
 echo No version information was found within modinfo.txt. Recreating and filling new modinfo.txt with placeholder data...
-::this explains potential compile crash risk
-echo WARNING: you may need to change the mod icon - it's possible the file Quiksizzler puts as default doesn't actually exist!
 ::> outputs to file and overwrites; >> outputs to file and appends to the next line
 echo name = autofilled mod name>modinfo.txt
 echo author = autofilled author name>>modinfo.txt
-echo icon = gui/icons/icon.png>>modinfo.txt
 echo version = 1.0.0.0>>modinfo.txt
 goto versionAdvance
 
@@ -258,13 +255,11 @@ goto:end
 :::::::::::::::::::::::
 :end
 call :drawLogo
-::clean up temp files
-if exist version.tmp del /q version.tmp
-if exist modinfo.tmp del /q modinfo.tmp
 for /f "usebackq tokens=3,4,5,6 delims=. " %%b in (`findstr /b version "modinfo.txt"`) do call :colorEcho 0B "Build successful - version %%b.%%c.%%d.%%e ready"
 IF %_H% EQU 1 goto launchGame
 choice /n /m "Would you like to start Invisible, Inc.? [Y/N]"
 IF %ERRORLEVEL% EQU 1 goto launchGame
+call :cleanup
 endlocal
 exit /b 0
 
@@ -287,10 +282,30 @@ exit /b 0
 :abort
 endlocal
 ::clean up temp files - in case of abort, it's possible modinfo.tmp won't overwrite modinfo.txt yet, so we're deleting it to be certain
-if exist version.tmp del /q version.tmp
-if exist modinfo.tmp del /q modinfo.tmp
+call :cleanup
 echo Cleaned up, aborting...
 exit /b 1
+
+:cleanup
+if exist version.tmp del /q version.tmp
+if exist modinfo.tmp del /q modinfo.tmp
+::unset variables
+set _Bd=
+set _M=
+set _H=
+set qslsOk=
+set qslsUnresolved=
+set qslsError=
+set qslsSkip=
+set qsls1=
+set qsls2=
+set qsls3=
+set qsls1_=
+set qsls2_=
+set qsls3_=
+set DEL=
+set dummy=
+exit /b 0
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::   L  O  G  O   ::
