@@ -11,7 +11,9 @@ Currently adds three modding batch scripts to streamline the workflow of modding
 Renames Invisible, Inc. mod folders from their steam names (e.g. `workshop-1711205484`) to their mod names, 
 edited to be compatible with the game's Mod Manager (e.g. `Advanced_Cyberwarfare`).
 
-Useful for when you want to look up code in another mod, but don't remember which of the `workshop-XXXXXXXX` folders that mod was.
+Useful for when you want to look up code in another mod, but don't remember which of the `workshop-XXXXXXXXX` folders that mod was.
+
+v2: now also adds a workshop field to `modinfo.txt` (e.g.`workshop = 1711205484`); stores Steam Workshop ID of the mod for compatibility with Date Tracker mod.
 
 ### Usage:
  - Drop `nameMods.bat` in your `InvisibleInc/mods` folder
