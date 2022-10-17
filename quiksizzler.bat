@@ -1,8 +1,8 @@
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-::Quiksizzler v7.1
+::Quiksizzler v7.2
 ::Written by Sizzlefrost, 2019
-::Last Update: 08/02/22
-::modinfo icon no longer enforced; unsets variables
+::Last Update: 17/10/22
+::detailed errors; fixed dangerous KWAD builder bug
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 @echo off
 setlocal EnableDelayedExpansion
@@ -14,6 +14,9 @@ set _H=0
 set qslsOk=OK
 set qslsUnresolved=UNRESOLVED
 set qslsError=ERROR
+set qslsKwaddingError=ERROR INSIDE KWAD BUILDER -- Try running it manually.
+set qslsBuilderError=ERROR FINDING THE KWAD BUILDER -- Try placing it in steamapps/common/InvisibleInc.
+set qslsScriptsMissingError=ERROR FINDING THE SCRIPTS FOLDER -- Ensure a folder named `scripts` exists in your mod.
 set qslsSkip=SKIPPED
 set qsls1=VERSION - 
 set qsls2=SCRIPTS - 
@@ -192,8 +195,8 @@ goto skipscripts
 :: powershell.exe -nologo -noprofile -command "& { Add-Type -Assembly 'System.IO.Compression.FileSystem'; [System.AppContext]::SetSwitch('Switch.System.IO.Compression.ZipFile.UseBackslash', $false); [IO.Compression.ZipFile]::CreateFromDirectory('scripts', 'scripts.zip'); }"
 :scriptsInvalid
 echo "ERROR: Scripts folder not found. It is required for any mod, please build one!"
-pause 
-exit /b 0
+set qsls2_=5
+goto:skipscripts
 
 :skipscripts
 IF %_H% EQU 1 echo KWADS SKIP && set qsls3_=2 && goto:end
@@ -220,11 +223,12 @@ cd "InvisibleInc"
 ::&& executes command only if previous command on this line is executed successfully; || executes only if previous is unsuccessful.
 dir /s /a:d "KWAD builder" >nul && goto:kwadCall || set /a _Bd+=1
 cd "%USERPROFILE%\Desktop"
-dir /s /a:d "KWAD builder" >nul && goto:kwadCall || set /a _Bd+=1
+	 >nul && goto:kwadCall || set /a _Bd+=1
 cd "Invisible Inc Mod Uploader"
 dir /s /a:d "KWAD builder" >nul && goto:kwadCall || set /a _Bd+=1
 if "%_Bd%" EQU 3 (
 	echo "ERROR: KWAD Builder not found. Proceeding without building .kwad files..."
+	set qsls3_=4
 	goto:end
 )
 ::if we're here, something's gone terribly wrong
@@ -237,17 +241,15 @@ goto:abort
 ::dir /s works correctly if we find the target in a subdirectory, then it'll return the path of the target
 ::if we find it right in the initial directory, it'll instead return subdirectories of the target, which we don't want to do
 ::so we attempt to find the builder in the initial directory first, and if we fail, we dig deeper
-if exist "KWAD builder" cd "KWAD builder" || for /f "usebackq delims=" %%a in (`dir /s /a:d /b "KWAD builder"`) do (cd %%~dp)
+if exist "KWAD builder" cd "KWAD builder" || for /f "usebackq delims=" %%a in (`dir /s /a:d /b "KWAD builder"`) do (cd %%~a)
 ::now we run the builder
 echo KWAD BUILDER FOUND
-::we silence the output of the builder
-call build.bat >nul
-::now it should have output files into a subfolder called \out
-cd "out"
-::so we grab every .kwad we see and we put it back where the script is at (the mod directory); /a:-d means everything but directories (i.e. normal files only)
-for /f "usebackq delims=" %%a in (`dir /b /a:-d "*.kwad"`) do (move /y "%%a" !_M!\%%~nxa >nul)
-::and we report success
-set qsls3_=0
+for /f "usebackq delims=" %%A in (`dir /s /a:d /b "KWAD builder"`) do cd %%~dpfA
+::we silence the output of the builder; if it is unsuccessful, or no "out" folder exists, quit before grabbing the output
+::this error message is a bit wack; we print it first, abusing the fact that builder pauses on failure
+echo KWADDING ERROR - Press any key to continue & call build.bat >nul && (cd "out" || set qsls3_=3) || (set qsls3_=3)
+if %qsls3_%=="3" cd %_M% & goto:end
+for /f "usebackq delims=" %%a in (`dir /b /a:-d "*.kwad"`) do (move /y "%%a" !_M!\%%~nxa >nul) && set qsls3_=0 || set qsls3_=1
 cd %_M%
 goto:end
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -256,10 +258,10 @@ goto:end
 :end
 call :drawLogo
 for /f "usebackq tokens=3,4,5,6 delims=. " %%b in (`findstr /b version "modinfo.txt"`) do call :colorEcho 0B "Build successful - version %%b.%%c.%%d.%%e ready"
+call :cleanup
 IF %_H% EQU 1 goto launchGame
 choice /n /m "Would you like to start Invisible, Inc.? [Y/N]"
 IF %ERRORLEVEL% EQU 1 goto launchGame
-call :cleanup
 endlocal
 exit /b 0
 
@@ -276,6 +278,7 @@ start "Invisible Mod Test" "invisibleinc.exe"
 ::I cleared these up manually for a long time but now included the feature in Quiksizzler
 ::you can comment out the line if you want to keep the crash logs
 if exist *.mdmp del /q *.mdmp
+set _H=
 endlocal
 exit /b 0
 
@@ -292,9 +295,11 @@ if exist modinfo.tmp del /q modinfo.tmp
 ::unset variables
 set _Bd=
 set _M=
-set _H=
 set qslsOk=
 set qslsUnresolved=
+set qslsKwaddingError=
+set qslsBuilderError=
+set qslsScriptsMissingError=
 set qslsError=
 set qslsSkip=
 set qsls1=
@@ -310,13 +315,13 @@ exit /b 0
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::   L  O  G  O   ::
 ::::::::::::::::::::
-:: font name: Slant; @ https://patorjk.com/software/taag/
+:: font name: Slant & modified 4Max; @ https://patorjk.com/software/taag/
 :drawLogo
 cls
-call :colorEcho 0B " dPOYb   88   88  88  db  dP   dPOY8  88  8888P  8888P  88      888888  88OOYb        Yb    dP 888888P  d8POY8b"
-call :colorEcho 0B "dP   Yb  88   88  88  88oP     Y8b    88    dP     dP   88      88__    88__dP         Yb  dP      dP   8P   Y8"
-call :colorEcho 0B "Yb  _dP  Y8   8P  88  88~b       Y8b  88   dP     dP    88      88^    88OYb           YbdP      dP    8b   d8"
-call :colorEcho 0B " YOYoYo_  YbodP   88  YP  Yb  8bod8P  88  d8888  d8888  88ood8  888888  88  Yb           YP      dP   O YObodOP"
+call :colorEcho 0B " dPOYb   88   88  88  db  dP   dPOY8  88  8888P  8888P  88      888888  88OOYb        Yb    dP 888888P   oP`8b"
+call :colorEcho 0B "dP   Yb  88   88  88  88oP     Y8b    88    dP     dP   88      88__    88__dP         Yb  dP      dP    `  dP"
+call :colorEcho 0B "Yb  _dP  Y8   8P  88  88~b       Y8b  88   dP     dP    88      88^    88OYb           YbdP      dP       dP  "
+call :colorEcho 0B " YOYoYo_  YbodP   88  YP  Yb  8bod8P  88  d8888  d8888  88ood8  888888  88  Yb           YP      dP   O  d8888"
 echo ### STATUS ###
 <nul set /p dummy="%qsls1%"
 call :displayStatus %qsls1_%
@@ -331,6 +336,9 @@ EXIT /B 0
 if "%~1"=="0" call :colorEcho A0 "%qslsOk%" & EXIT /B 0
 if "%~1"=="1" call :colorEcho 4F "%qslsError%" & EXIT /B 0
 if "%~1"=="2" call :colorEcho 08 "%qslsSkip%" & EXIT /B 0
+if "%~1"=="3" call :colorEcho 4F "%qslsKwaddingError%" & EXIT /B 0
+if "%~1"=="4" call :colorEcho 4F "%qslsBuilderError%" & EXIT /B 0
+if "%~1"=="5" call :colorEcho 4F "%qslsScriptsMissingError%" & EXIT /B 0
 call :colorEcho 0F "%qslsUnresolved%"
 EXIT /B 0
 
