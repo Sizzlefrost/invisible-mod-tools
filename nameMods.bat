@@ -1,8 +1,8 @@
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-::Invisible, Inc. Mod Name Generator v2
+::Invisible, Inc. Mod Name Generator v2.1
 ::Written by Sizzlefrost, 2021
-::Last Update: 08/02/22
-::Streamlined nested brackets; adds workshop ID to modinfo; unsets variables; improved colour scheme
+::Last Update: 28/10/22
+::Added support for colons
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::SETUP
 @echo off
@@ -36,6 +36,8 @@ set workedName=!workedName:+=_plus!
 ::Untitled Inc. Goose Protocol; remove both . and , for compatibility
 set workedName=!workedName:,=!
 set workedName=!workedName:.=!
+::New Agent: Valkyrie
+set workedName=!workedName::=_!
 ::spaces
 set newName=!workedName: =_!
 echo Found !fullName!, renaming to !newName!
